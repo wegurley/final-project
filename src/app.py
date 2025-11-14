@@ -3,7 +3,7 @@ import io
 import os
 import logging
 from datetime import datetime
-from flask import Flask, request, jsonify, send_file, abort
+from flask import Flask, request, jsonify, send_file, abort, render_template
 import pandas as pd
 import matplotlib
 matplotlib.use("Agg")
@@ -39,6 +39,10 @@ def safe_cast_value(value_str):
         return int(value_str)
     except Exception:
         return value_str
+
+@app.route("/", methods=["GET"])
+def index():
+    return render_template("index.html")
 
 @app.route("/health", methods=["GET"])
 def health():

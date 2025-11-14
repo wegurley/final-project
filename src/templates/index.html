@@ -1,0 +1,475 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Mini Stats API - Data Analysis Tool</title>
+    <style>
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.2);
+            padding: 30px;
+        }
+        h1 {
+            color: #333;
+            margin-bottom: 10px;
+            font-size: 2.5em;
+        }
+        .subtitle {
+            color: #666;
+            margin-bottom: 30px;
+        }
+        .section {
+            margin-bottom: 30px;
+            padding: 20px;
+            background: #f8f9fa;
+            border-radius: 8px;
+            border-left: 4px solid #667eea;
+        }
+        .section h2 {
+            color: #333;
+            margin-bottom: 15px;
+            font-size: 1.5em;
+        }
+        .upload-area {
+            border: 2px dashed #667eea;
+            border-radius: 8px;
+            padding: 40px;
+            text-align: center;
+            background: white;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+        .upload-area:hover {
+            background: #f0f0ff;
+            border-color: #764ba2;
+        }
+        .upload-area.dragover {
+            background: #e8e8ff;
+            border-color: #764ba2;
+        }
+        input[type="file"] {
+            display: none;
+        }
+        button {
+            background: #667eea;
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 16px;
+            font-weight: 600;
+            transition: all 0.3s;
+            margin: 5px;
+        }
+        button:hover {
+            background: #764ba2;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
+        }
+        button:disabled {
+            background: #ccc;
+            cursor: not-allowed;
+            transform: none;
+        }
+        .info {
+            background: #e3f2fd;
+            border-left: 4px solid #2196f3;
+            padding: 15px;
+            margin: 15px 0;
+            border-radius: 4px;
+        }
+        .error {
+            background: #ffebee;
+            border-left: 4px solid #f44336;
+            padding: 15px;
+            margin: 15px 0;
+            border-radius: 4px;
+            color: #c62828;
+        }
+        .success {
+            background: #e8f5e9;
+            border-left: 4px solid #4caf50;
+            padding: 15px;
+            margin: 15px 0;
+            border-radius: 4px;
+            color: #2e7d32;
+        }
+        pre {
+            background: #2d2d2d;
+            color: #f8f8f2;
+            padding: 15px;
+            border-radius: 6px;
+            overflow-x: auto;
+            font-size: 14px;
+        }
+        .data-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 15px;
+            background: white;
+        }
+        .data-table th,
+        .data-table td {
+            padding: 12px;
+            text-align: left;
+            border-bottom: 1px solid #ddd;
+        }
+        .data-table th {
+            background: #667eea;
+            color: white;
+            font-weight: 600;
+        }
+        .data-table tr:hover {
+            background: #f5f5f5;
+        }
+        .loading {
+            display: inline-block;
+            width: 20px;
+            height: 20px;
+            border: 3px solid #f3f3f3;
+            border-top: 3px solid #667eea;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin-left: 10px;
+        }
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        .histogram-container {
+            text-align: center;
+            margin: 20px 0;
+        }
+        .histogram-container img {
+            max-width: 100%;
+            border-radius: 8px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+        }
+        .filter-controls {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+            align-items: center;
+            margin: 15px 0;
+        }
+        .filter-controls input,
+        .filter-controls select {
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 6px;
+            font-size: 14px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>📊 Mini Stats API</h1>
+        <p class="subtitle">Upload CSV files and analyze your data</p>
+
+        <!-- Upload Section -->
+        <div class="section">
+            <h2>1. Upload CSV File</h2>
+            <div class="upload-area" id="uploadArea">
+                <p>📁 Drag and drop a CSV file here, or click to browse</p>
+                <input type="file" id="fileInput" accept=".csv">
+            </div>
+            <div id="uploadStatus"></div>
+        </div>
+
+        <!-- Dataset Info -->
+        <div class="section" id="datasetInfo" style="display: none;">
+            <h2>📋 Dataset Information</h2>
+            <div id="metaInfo"></div>
+        </div>
+
+        <!-- Columns Section -->
+        <div class="section" id="columnsSection" style="display: none;">
+            <h2>2. Columns</h2>
+            <div id="columnsList"></div>
+        </div>
+
+        <!-- Summary Section -->
+        <div class="section" id="summarySection">
+            <h2>3. Statistical Summary</h2>
+            <button onclick="loadSummary()">Load Summary</button>
+            <div id="summaryData"></div>
+        </div>
+
+        <!-- Column Data Section -->
+        <div class="section" id="columnSection">
+            <h2>4. View Column Data</h2>
+            <div class="filter-controls">
+                <select id="columnSelect">
+                    <option value="">Select a column...</option>
+                </select>
+                <button onclick="loadColumn()">View Column</button>
+            </div>
+            <div id="columnData"></div>
+        </div>
+
+        <!-- Filter Section -->
+        <div class="section" id="filterSection">
+            <h2>5. Filter Data</h2>
+            <div class="filter-controls">
+                <select id="filterColumnSelect">
+                    <option value="">Select column...</option>
+                </select>
+                <input type="text" id="filterValue" placeholder="Enter value to filter">
+                <button onclick="filterData()">Filter</button>
+            </div>
+            <div id="filterResults"></div>
+        </div>
+
+        <!-- Plot Section -->
+        <div class="section" id="plotSection">
+            <h2>6. Generate Histogram</h2>
+            <div class="filter-controls">
+                <select id="plotColumnSelect">
+                    <option value="">Select numeric column...</option>
+                </select>
+                <button onclick="generatePlot()">Generate Histogram</button>
+            </div>
+            <div id="plotContainer"></div>
+        </div>
+    </div>
+
+    <script>
+        const API_BASE = window.location.origin;
+        let columns = [];
+
+        // Upload functionality
+        const uploadArea = document.getElementById('uploadArea');
+        const fileInput = document.getElementById('fileInput');
+
+        uploadArea.addEventListener('click', () => fileInput.click());
+        uploadArea.addEventListener('dragover', (e) => {
+            e.preventDefault();
+            uploadArea.classList.add('dragover');
+        });
+        uploadArea.addEventListener('dragleave', () => {
+            uploadArea.classList.remove('dragover');
+        });
+        uploadArea.addEventListener('drop', (e) => {
+            e.preventDefault();
+            uploadArea.classList.remove('dragover');
+            const file = e.dataTransfer.files[0];
+            if (file && file.name.endsWith('.csv')) {
+                uploadFile(file);
+            }
+        });
+        fileInput.addEventListener('change', (e) => {
+            if (e.target.files[0]) {
+                uploadFile(e.target.files[0]);
+            }
+        });
+
+        async function uploadFile(file) {
+            const statusDiv = document.getElementById('uploadStatus');
+            statusDiv.innerHTML = '<div class="info">Uploading...</div>';
+            
+            const formData = new FormData();
+            formData.append('file', file);
+
+            try {
+                const response = await fetch(`${API_BASE}/upload`, {
+                    method: 'POST',
+                    body: formData
+                });
+                const data = await response.json();
+
+                if (response.ok) {
+                    statusDiv.innerHTML = `<div class="success">✓ Uploaded successfully! ${data.rows} rows, ${data.columns} columns</div>`;
+                    columns = data.columns_list;
+                    await loadMeta();
+                    await loadColumns();
+                    updateColumnSelects();
+                } else {
+                    statusDiv.innerHTML = `<div class="error">✗ Error: ${data.message || 'Upload failed'}</div>`;
+                }
+            } catch (error) {
+                statusDiv.innerHTML = `<div class="error">✗ Error: ${error.message}</div>`;
+            }
+        }
+
+        async function loadMeta() {
+            try {
+                const response = await fetch(`${API_BASE}/meta`);
+                const data = await response.json();
+                if (data.loaded) {
+                    document.getElementById('datasetInfo').style.display = 'block';
+                    document.getElementById('metaInfo').innerHTML = `
+                        <p><strong>Filename:</strong> ${data.filename}</p>
+                        <p><strong>Rows:</strong> ${data.rows}</p>
+                        <p><strong>Columns:</strong> ${data.columns.join(', ')}</p>
+                        <p><strong>Uploaded:</strong> ${new Date(data.uploaded_at).toLocaleString()}</p>
+                    `;
+                }
+            } catch (error) {
+                console.error('Error loading meta:', error);
+            }
+        }
+
+        async function loadColumns() {
+            try {
+                const response = await fetch(`${API_BASE}/columns`);
+                const data = await response.json();
+                document.getElementById('columnsSection').style.display = 'block';
+                document.getElementById('columnsList').innerHTML = `
+                    <p><strong>Columns (${data.columns.length}):</strong></p>
+                    <p>${data.columns.join(', ')}</p>
+                `;
+            } catch (error) {
+                console.error('Error loading columns:', error);
+            }
+        }
+
+        function updateColumnSelects() {
+            const selects = ['columnSelect', 'filterColumnSelect', 'plotColumnSelect'];
+            selects.forEach(selectId => {
+                const select = document.getElementById(selectId);
+                select.innerHTML = '<option value="">Select...</option>';
+                columns.forEach(col => {
+                    const option = document.createElement('option');
+                    option.value = col;
+                    option.textContent = col;
+                    select.appendChild(option);
+                });
+            });
+        }
+
+        async function loadSummary() {
+            const summaryDiv = document.getElementById('summaryData');
+            summaryDiv.innerHTML = '<div class="info">Loading summary...</div>';
+            
+            try {
+                const response = await fetch(`${API_BASE}/summary`);
+                const data = await response.json();
+                
+                if (data.message) {
+                    summaryDiv.innerHTML = `<div class="info">${data.message}</div>`;
+                } else {
+                    let html = '<table class="data-table"><thead><tr><th>Column</th><th>Count</th><th>Mean</th><th>Std</th><th>Min</th><th>25%</th><th>50%</th><th>75%</th><th>Max</th></tr></thead><tbody>';
+                    for (const [col, stats] of Object.entries(data)) {
+                        html += `<tr>
+                            <td><strong>${col}</strong></td>
+                            <td>${stats.count}</td>
+                            <td>${stats.mean?.toFixed(2) || 'N/A'}</td>
+                            <td>${stats.std?.toFixed(2) || 'N/A'}</td>
+                            <td>${stats.min}</td>
+                            <td>${stats['25%']}</td>
+                            <td>${stats['50%']}</td>
+                            <td>${stats['75%']}</td>
+                            <td>${stats.max}</td>
+                        </tr>`;
+                    }
+                    html += '</tbody></table>';
+                    summaryDiv.innerHTML = html;
+                }
+            } catch (error) {
+                summaryDiv.innerHTML = `<div class="error">Error: ${error.message}</div>`;
+            }
+        }
+
+        async function loadColumn() {
+            const col = document.getElementById('columnSelect').value;
+            if (!col) return;
+
+            const columnDiv = document.getElementById('columnData');
+            columnDiv.innerHTML = '<div class="info">Loading column data...</div>';
+
+            try {
+                const response = await fetch(`${API_BASE}/column/${encodeURIComponent(col)}`);
+                const data = await response.json();
+                
+                let html = `<p><strong>Column:</strong> ${data.column}</p>`;
+                html += `<p><strong>Data Type:</strong> ${data.dtype}</p>`;
+                html += `<p><strong>Values (${data.values.length}):</strong></p>`;
+                html += `<pre>${JSON.stringify(data.values.slice(0, 100), null, 2)}${data.values.length > 100 ? '\n... (showing first 100)' : ''}</pre>`;
+                columnDiv.innerHTML = html;
+            } catch (error) {
+                columnDiv.innerHTML = `<div class="error">Error: ${error.message}</div>`;
+            }
+        }
+
+        async function filterData() {
+            const col = document.getElementById('filterColumnSelect').value;
+            const value = document.getElementById('filterValue').value;
+            if (!col || !value) return;
+
+            const resultsDiv = document.getElementById('filterResults');
+            resultsDiv.innerHTML = '<div class="info">Filtering...</div>';
+
+            try {
+                const response = await fetch(`${API_BASE}/filter?col=${encodeURIComponent(col)}&value=${encodeURIComponent(value)}`);
+                const data = await response.json();
+                
+                if (data.data && data.data.length > 0) {
+                    let html = `<p><strong>Found ${data.rows_total} row(s), showing ${data.rows_returned}:</strong></p>`;
+                    html += '<table class="data-table"><thead><tr>';
+                    Object.keys(data.data[0]).forEach(key => {
+                        html += `<th>${key}</th>`;
+                    });
+                    html += '</tr></thead><tbody>';
+                    data.data.forEach(row => {
+                        html += '<tr>';
+                        Object.values(row).forEach(val => {
+                            html += `<td>${val}</td>`;
+                        });
+                        html += '</tr>';
+                    });
+                    html += '</tbody></table>';
+                    resultsDiv.innerHTML = html;
+                } else {
+                    resultsDiv.innerHTML = '<div class="info">No matching rows found.</div>';
+                }
+            } catch (error) {
+                resultsDiv.innerHTML = `<div class="error">Error: ${error.message}</div>`;
+            }
+        }
+
+        async function generatePlot() {
+            const col = document.getElementById('plotColumnSelect').value;
+            if (!col) return;
+
+            const plotDiv = document.getElementById('plotContainer');
+            plotDiv.innerHTML = '<div class="info">Generating histogram...</div>';
+
+            try {
+                const response = await fetch(`${API_BASE}/plot/${encodeURIComponent(col)}`);
+                if (response.ok) {
+                    const blob = await response.blob();
+                    const url = URL.createObjectURL(blob);
+                    plotDiv.innerHTML = `
+                        <div class="histogram-container">
+                            <h3>Histogram: ${col}</h3>
+                            <img src="${url}" alt="Histogram of ${col}">
+                        </div>
+                    `;
+                } else {
+                    const data = await response.json();
+                    plotDiv.innerHTML = `<div class="error">Error: ${data.message || 'Failed to generate plot'}</div>`;
+                }
+            } catch (error) {
+                plotDiv.innerHTML = `<div class="error">Error: ${error.message}</div>`;
+            }
+        }
+    </script>
+</body>
+</html>
+
