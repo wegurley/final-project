@@ -1,5 +1,5 @@
 # Mini Stats API
-- Will Gurley
+*Will Gurley*
   
 ## 1) Executive Summary
 
