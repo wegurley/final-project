@@ -7,7 +7,7 @@
 Many people want to quickly get statistics and information about a CSV file without any previous knowledge of programming or data analysis. Existing tools can sometimes be too complex or require installation of software.
 
 ### Solution
-Mini Stats API is a simple web-based application that allows users to upload a CSV file and receive basic statistics and insights about the data contained within the file. The application will provide summary statistics such as mean, median, mode, standard deviation, and data type information for each column in the CSV file. Also, it will generate simple visualizations like histograms and box plots for numerical data.
+Mini Stats API is a simple web-based application that allows users to upload a CSV file and receive basic statistics and insights about the data contained within the file. The application will provide summary statistics such as mean, median, mode, standard deviation, and data type information for each column in the CSV file. Also, it will generate simple visualizations like histograms for numerical data.
 
 ## 2) System Overview
 
